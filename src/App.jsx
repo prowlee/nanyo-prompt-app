@@ -9,18 +9,21 @@ const STORAGE_KEY = "nanyo_prompts_v4";
 const PER_PAGE = 32;
 
 const CAT_COLORS = {
-  "文章作成・要約": { bg: "#e0f2fe", fg: "#0369a1", icon: "✏️" },
-  "文書校正・編集": { bg: "#fce7f3", fg: "#be185d", icon: "📝" },
-  "アイデア創出・企画": { bg: "#fffbeb", fg: "#b45309", icon: "💡" },
-  "業務改善": { bg: "#dcfce7", fg: "#15803d", icon: "⚙️" },
-  "情報収集・分析": { bg: "#e0e7ff", fg: "#4338ca", icon: "🔍" },
-  "コミュニケーション支援": { bg: "#f3e8ff", fg: "#7e22ce", icon: "💬" },
-  "プログラミング": { bg: "#cffafe", fg: "#0e7490", icon: "💻" },
-  "意識改革・スキルアップ": { bg: "#ffedd5", fg: "#c2410c", icon: "🚀" },
-  "その他": { bg: "#f1f5f9", fg: "#475569", icon: "📌" },
+  "文章作成・要約": { bg: "#e0f2fe", fg: "#0369a1", darkBg: "rgba(3, 105, 161, 0.2)", darkFg: "#7dd3fc", icon: "✏️" },
+  "文書校正・編集": { bg: "#fce7f3", fg: "#be185d", darkBg: "rgba(190, 24, 93, 0.2)", darkFg: "#f9a8d4", icon: "📝" },
+  "アイデア創出・企画": { bg: "#fffbeb", fg: "#b45309", darkBg: "rgba(180, 83, 9, 0.2)", darkFg: "#fcd34d", icon: "💡" },
+  "業務改善": { bg: "#dcfce7", fg: "#15803d", darkBg: "rgba(21, 128, 61, 0.2)", darkFg: "#86efac", icon: "⚙️" },
+  "情報収集・分析": { bg: "#e0e7ff", fg: "#4338ca", darkBg: "rgba(67, 56, 202, 0.2)", darkFg: "#a5b4fc", icon: "🔍" },
+  "コミュニケーション支援": { bg: "#f3e8ff", fg: "#7e22ce", darkBg: "rgba(126, 34, 206, 0.2)", darkFg: "#d8b4fe", icon: "💬" },
+  "プログラミング": { bg: "#cffafe", fg: "#0e7490", darkBg: "rgba(14, 116, 144, 0.2)", darkFg: "#67e8f9", icon: "💻" },
+  "意識改革・スキルアップ": { bg: "#ffedd5", fg: "#c2410c", darkBg: "rgba(194, 65, 12, 0.2)", darkFg: "#fdba74", icon: "🚀" },
+  "その他": { bg: "#f1f5f9", fg: "#475569", darkBg: "rgba(71, 85, 105, 0.2)", darkFg: "#cbd5e1", icon: "📌" },
 };
 
-const getColor = (c1) => CAT_COLORS[c1] || CAT_COLORS["その他"];
+const getColor = (c1, isDark) => {
+  const cfg = CAT_COLORS[c1] || CAT_COLORS["その他"];
+  return isDark ? { bg: cfg.darkBg, fg: cfg.darkFg, icon: cfg.icon } : cfg;
+};
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 const Icons = {
@@ -38,6 +41,15 @@ const Icons = {
 const PromptRunModal = ({ item, onClose }) => {
   const rawContent = contentsData[item.id] || "プロンプトの本文が読み込めませんでした。";
   
+  // ESCキーで閉じる
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
   const placeholders = useMemo(() => {
     const matches = rawContent.match(/\{([^}]+)\}/g) || [];
     return [...new Set(matches.map(m => m.slice(1, -1)))];
@@ -120,45 +132,32 @@ const PromptRunModal = ({ item, onClose }) => {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: '1000px', width: '95%', display: 'flex', flexDirection: 'column', maxHeight: '95vh', padding: '0', overflow: 'hidden' }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal" style={{ maxWidth: '1100px', height: '95vh' }} onClick={(e) => e.stopPropagation()}>
         
         {/* Header */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--card)', zIndex: 10 }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>{item.title}</h2>
-            <p style={{ fontSize: '12px', color: 'var(--ink3)', margin: '4px 0 0' }}>#{item.id} - {item.c1} / {item.c2}</p>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--card)', zIndex: 10, flexShrink: 0 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</h2>
+            <p style={{ fontSize: '11px', color: 'var(--ink3)', margin: '2px 0 0' }}>#{item.id} - {item.c1} / {item.c2}</p>
           </div>
-          <button className="btn-icon" onClick={onClose} style={{ border: 'none', background: 'transparent', fontSize: '24px', cursor: 'pointer', color: 'var(--ink2)' }}>×</button>
+          <button className="btn-icon" onClick={onClose} style={{ border: 'none', background: 'transparent', fontSize: '24px', cursor: 'pointer', color: 'var(--ink2)', marginLeft: '12px' }}>×</button>
         </div>
         
-        <div style={{ display: 'grid', gridTemplateColumns: placeholders.length > 0 ? '400px 1fr' : '1fr', flex: 1, overflow: 'hidden' }}>
+        <div className={`modal-content-wrapper ${placeholders.length > 0 ? 'has-form' : ''}`}>
           
           {/* Left: Input Form */}
           {placeholders.length > 0 && (
-            <div className="prompt-form" style={{ padding: '24px', overflowY: 'auto', borderRight: '1px solid var(--border)', backgroundColor: 'var(--card)' }}>
-              <div style={{ marginBottom: '20px', padding: '12px', background: 'var(--primary-light)', borderRadius: '8px', borderLeft: '4px solid var(--primary)' }}>
-                <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: 'var(--primary)' }}>
-                  以下の項目を入力してください。右側のプレビューにリアルタイムで反映されます。
+            <div className="prompt-form">
+              <div style={{ marginBottom: '20px', padding: '10px 12px', background: 'var(--primary-light)', borderRadius: '8px', borderLeft: '4px solid var(--primary)' }}>
+                <p style={{ margin: 0, fontSize: '12px', fontWeight: '600', color: 'var(--primary)' }}>
+                  情報を入力してください。右側（または下）のプレビューに反映されます。
                 </p>
               </div>
               {placeholders.map(p => (
-                <div key={p} className="form-group" style={{ marginBottom: '20px' }}>
-                  <label style={{ fontSize: '14px', fontWeight: '700', display: 'block', marginBottom: '8px', color: 'var(--ink)' }}>{p}</label>
+                <div key={p} className="form-group" style={{ marginBottom: '16px' }}>
+                  <label>{p}</label>
                   <textarea 
-                    className="form-control" 
-                    style={{ 
-                      minHeight: '100px', 
-                      borderRadius: '8px', 
-                      border: '1px solid var(--border)',
-                      backgroundColor: 'rgba(255, 100, 100, 0.05)', 
-                      padding: '12px',
-                      fontSize: '14px',
-                      lineHeight: '1.5',
-                      transition: 'all 0.2s',
-                      color: 'var(--ink)'
-                    }}
-                    onFocus={(e) => e.target.style.backgroundColor = 'var(--card)'}
-                    onBlur={(e) => { if(!values[p]) e.target.style.backgroundColor = 'rgba(255, 100, 100, 0.05)' }}
+                    className="prompt-textarea" 
                     placeholder={`ここに${p}を入力してください`}
                     value={values[p] || ""}
                     onChange={(e) => setValues(prev => ({ ...prev, [p]: e.target.value }))}
@@ -169,40 +168,27 @@ const PromptRunModal = ({ item, onClose }) => {
           )}
 
           {/* Right: Preview */}
-          <div className="prompt-preview" style={{ background: 'var(--bg)', padding: '24px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--ink2)', margin: 0 }}>プロンプト プレビュー</h3>
-              <span style={{ fontSize: '11px', color: 'var(--ink3)' }}>プレースホルダー部分は自動的に差し替わります</span>
+          <div className="prompt-preview">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexShrink: 0 }}>
+              <h3 style={{ fontSize: '13px', fontWeight: '700', color: 'var(--ink2)', margin: 0 }}>プロンプト プレビュー</h3>
+              <span style={{ fontSize: '10px', color: 'var(--ink3)' }}>挿入箇所は自動的に置換されます</span>
             </div>
-            <div style={{ 
-              flex: 1, 
-              background: 'var(--card)', 
-              borderRadius: '12px', 
-              padding: '24px', 
-              fontSize: '14px', 
-              lineHeight: '1.7', 
-              whiteSpace: 'pre-wrap', 
-              overflowY: 'auto', 
-              border: '1px solid var(--border)',
-              boxShadow: 'inset 0 2px 4px 0 rgba(0,0,0,0.05)',
-              fontFamily: 'monospace',
-              color: 'var(--ink)'
-            }}>
+            <div className="preview-box">
               {renderPreview()}
             </div>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: '12px', backgroundColor: 'var(--card)', zIndex: 10 }}>
-          <button className="btn-action btn-outline" onClick={onClose} style={{ maxWidth: '120px' }}>キャンセル</button>
-          <div style={{ flex: 1 }} />
+        <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: '12px', backgroundColor: 'var(--card)', zIndex: 10, flexShrink: 0, flexWrap: 'wrap' }}>
+          <button className="btn-action btn-outline" onClick={onClose} style={{ flex: '0 0 auto', width: 'auto', padding: '0 20px' }}>キャンセル</button>
+          <div style={{ flex: 1 }} className="desktop-spacer" />
           <button 
             className="btn-action btn-primary" 
             onClick={handleCopy} 
-            style={{ minWidth: '300px', fontSize: '16px', fontWeight: '700', height: '52px', borderRadius: '10px' }}
+            style={{ flex: '1 1 300px', fontSize: '15px', fontWeight: '700', height: '48px', borderRadius: '10px' }}
           >
-            {copyStatus ? "クリップボードにコピーしました！" : <><Icons.Copy /> プロンプトを完成させてコピー</>}
+            {copyStatus ? "コピーしました！" : <><Icons.Copy /> プロンプトを完成させてコピー</>}
           </button>
         </div>
       </div>
@@ -215,6 +201,16 @@ const CrudModal = ({ item, onSave, onDelete, onClose }) => {
   const [form, setForm] = useState(item || {
     title: "", c1: RAW.c1[0], c2: "", url: "", isNew: false, isUser: true,
   });
+
+  // ESCキーで閉じる
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const isEdit = !!item;
 
@@ -420,7 +416,7 @@ export default function App() {
           </div>
         ) : (
           paged.map(p => {
-            const col = getColor(p.c1);
+            const col = getColor(p.c1, darkMode);
             return (
               <div key={p.id} className={`card ${viewMode==='list'?'list-mode':''}`} onClick={()=>p.isUser && setModal(p)}>
                 <button className={`fav-btn ${favs.has(p.id)?'active':''}`} onClick={(e)=>{e.stopPropagation();toggleFav(p.id)}}>
@@ -434,7 +430,7 @@ export default function App() {
                   <h3 className="card-title">{p.title}</h3>
                   <div className="card-tags">
                     <span className="tag" style={{background:col.bg, color:col.fg}}>{col.icon} {p.c1}</span>
-                    {p.c2 && <span className="tag" style={{background:'#f1f5f9', color:'#475569'}}>{p.c2}</span>}
+                    {p.c2 && <span className="tag" style={{background:'var(--primary-light)', color:'var(--ink2)'}}>{p.c2}</span>}
                   </div>
                 </div>
                 <div className="card-footer">
