@@ -123,21 +123,21 @@ const PromptRunModal = ({ item, onClose }) => {
       <div className="modal" style={{ maxWidth: '1000px', width: '95%', display: 'flex', flexDirection: 'column', maxHeight: '95vh', padding: '0', overflow: 'hidden' }} onClick={(e) => e.stopPropagation()}>
         
         {/* Header */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', zIndex: 10 }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--card)', zIndex: 10 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>{item.title}</h2>
             <p style={{ fontSize: '12px', color: 'var(--ink3)', margin: '4px 0 0' }}>#{item.id} - {item.c1} / {item.c2}</p>
           </div>
-          <button className="btn-icon" onClick={onClose} style={{ border: 'none', background: 'transparent', fontSize: '24px', cursor: 'pointer' }}>×</button>
+          <button className="btn-icon" onClick={onClose} style={{ border: 'none', background: 'transparent', fontSize: '24px', cursor: 'pointer', color: 'var(--ink2)' }}>×</button>
         </div>
         
         <div style={{ display: 'grid', gridTemplateColumns: placeholders.length > 0 ? '400px 1fr' : '1fr', flex: 1, overflow: 'hidden' }}>
           
           {/* Left: Input Form */}
           {placeholders.length > 0 && (
-            <div className="prompt-form" style={{ padding: '24px', overflowY: 'auto', borderRight: '1px solid var(--border)', backgroundColor: '#fff' }}>
+            <div className="prompt-form" style={{ padding: '24px', overflowY: 'auto', borderRight: '1px solid var(--border)', backgroundColor: 'var(--card)' }}>
               <div style={{ marginBottom: '20px', padding: '12px', background: 'var(--primary-light)', borderRadius: '8px', borderLeft: '4px solid var(--primary)' }}>
-                <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: 'var(--primary-dark)' }}>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: 'var(--primary)' }}>
                   以下の項目を入力してください。右側のプレビューにリアルタイムで反映されます。
                 </p>
               </div>
@@ -149,15 +149,16 @@ const PromptRunModal = ({ item, onClose }) => {
                     style={{ 
                       minHeight: '100px', 
                       borderRadius: '8px', 
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: '#fff5f5', // 原盤に近い薄いピンク
+                      border: '1px solid var(--border)',
+                      backgroundColor: 'rgba(255, 100, 100, 0.05)', 
                       padding: '12px',
                       fontSize: '14px',
                       lineHeight: '1.5',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.2s',
+                      color: 'var(--ink)'
                     }}
-                    onFocus={(e) => e.target.style.backgroundColor = '#fff'}
-                    onBlur={(e) => { if(!values[p]) e.target.style.backgroundColor = '#fff5f5' }}
+                    onFocus={(e) => e.target.style.backgroundColor = 'var(--card)'}
+                    onBlur={(e) => { if(!values[p]) e.target.style.backgroundColor = 'rgba(255, 100, 100, 0.05)' }}
                     placeholder={`ここに${p}を入力してください`}
                     value={values[p] || ""}
                     onChange={(e) => setValues(prev => ({ ...prev, [p]: e.target.value }))}
@@ -168,24 +169,24 @@ const PromptRunModal = ({ item, onClose }) => {
           )}
 
           {/* Right: Preview */}
-          <div className="prompt-preview" style={{ background: '#f8fafc', padding: '24px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div className="prompt-preview" style={{ background: 'var(--bg)', padding: '24px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <h3 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--ink2)', margin: 0 }}>プロンプト プレビュー</h3>
               <span style={{ fontSize: '11px', color: 'var(--ink3)' }}>プレースホルダー部分は自動的に差し替わります</span>
             </div>
             <div style={{ 
               flex: 1, 
-              background: '#fff', 
+              background: 'var(--card)', 
               borderRadius: '12px', 
               padding: '24px', 
               fontSize: '14px', 
               lineHeight: '1.7', 
               whiteSpace: 'pre-wrap', 
-              overflowY: 'auto',
+              overflowY: 'auto', 
               border: '1px solid var(--border)',
               boxShadow: 'inset 0 2px 4px 0 rgba(0,0,0,0.05)',
               fontFamily: 'monospace',
-              color: '#334155'
+              color: 'var(--ink)'
             }}>
               {renderPreview()}
             </div>
@@ -193,7 +194,7 @@ const PromptRunModal = ({ item, onClose }) => {
         </div>
 
         {/* Footer Actions */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: '12px', backgroundColor: '#fff', zIndex: 10 }}>
+        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: '12px', backgroundColor: 'var(--card)', zIndex: 10 }}>
           <button className="btn-action btn-outline" onClick={onClose} style={{ maxWidth: '120px' }}>キャンセル</button>
           <div style={{ flex: 1 }} />
           <button 
@@ -260,6 +261,7 @@ export default function App() {
   const [showFav, setShowFav] = useState(false);
   const [favs, setFavs] = useState(new Set());
   const [viewMode, setViewMode] = useState("grid");
+  const [darkMode, setDarkMode] = useState(false);
   const [modal, setModal] = useState(null); 
   const [runModal, setRunModal] = useState(null); 
   const [page, setPage] = useState(0);
@@ -269,6 +271,13 @@ export default function App() {
   // Load Data
   useEffect(() => {
     try {
+      // Theme
+      const savedTheme = localStorage.getItem(STORAGE_KEY + "_theme");
+      if (savedTheme === "dark" || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        setDarkMode(true);
+        document.body.classList.add('dark');
+      }
+
       const savedFavs = localStorage.getItem(STORAGE_KEY + "_favs");
       if (savedFavs) setFavs(new Set(JSON.parse(savedFavs)));
       const savedData = localStorage.getItem(STORAGE_KEY + "_data");
@@ -283,6 +292,17 @@ export default function App() {
     }
     setIsLoaded(true);
   }, []);
+
+  // Theme Sync
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark');
+      localStorage.setItem(STORAGE_KEY + "_theme", "dark");
+    } else {
+      document.body.classList.remove('dark');
+      localStorage.setItem(STORAGE_KEY + "_theme", "light");
+    }
+  }, [darkMode]);
 
   // Save Data
   useEffect(() => {
@@ -352,6 +372,9 @@ export default function App() {
             <p>生成AI活用実例集 745+ ({prompts.length})</p>
           </div>
           <div className="header-controls">
+            <button className={`btn-icon ${darkMode ? 'active' : ''}`} onClick={()=>setDarkMode(!darkMode)}>
+              {darkMode ? '🌙' : '☀️'}
+            </button>
             <button className={`btn-icon ${viewMode==='grid'?'active':''}`} onClick={()=>setViewMode('grid')}><Icons.Grid /></button>
             <button className={`btn-icon ${viewMode==='list'?'active':''}`} onClick={()=>setViewMode('list')}><Icons.List /></button>
             <button className="btn-icon btn-add" onClick={()=>setModal("add")}><Icons.Plus /> 追加</button>
