@@ -94,6 +94,7 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool, useQ
 
   const [copyStatus, setCopyStatus] = useState(false);
   const [pasteStatus, setPasteStatus] = useState(false);
+  const [editedPrompt, setEditedPrompt] = useState("");
 
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
@@ -114,6 +115,11 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool, useQ
     }
     return result;
   }, [promptText, values, inlinePlaceholders, additionalVars]);
+
+  // editedPromptを初期化・同期
+  useEffect(() => {
+    setEditedPrompt(finalPromptText);
+  }, [finalPromptText]);
 
   // プレビュー描画: インライン変数ハイライト + 追加変数表示
   const renderPreview = () => {
@@ -166,7 +172,7 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool, useQ
 
   const handleCopy = () => {
     const textArea = document.createElement("textarea");
-    textArea.value = finalPromptText;
+    textArea.value = editedPrompt; // 編集後のテキストを使用
     textArea.style.position = "fixed";
     textArea.style.left = "-9999px";
     document.body.appendChild(textArea);
@@ -184,9 +190,9 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool, useQ
     handleCopy();
     const tool = AI_TOOLS.find(t => t.id === selectedAiTool) || AI_TOOLS[0];
     let url = tool.url;
-    
+
     // 全てのAIツールでクリップボード貼り付けを想定（URLクエリは使用しない）
-    
+
     window.open(url, '_blank');
     setPasteStatus(true);
     setTimeout(() => setPasteStatus(false), 2000);
@@ -250,9 +256,14 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool, useQ
           <div className="prompt-preview">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexShrink: 0 }}>
               <h3 style={{ fontSize: '13px', fontWeight: '700', color: 'var(--ink2)', margin: 0 }}>プロンプト プレビュー</h3>
-              <span style={{ fontSize: '10px', color: 'var(--ink3)' }}>挿入箇所は自動的に置換されます</span>
+              <span style={{ fontSize: '10px', color: 'var(--ink3)' }}>編集可能 - 自由に修正できます</span>
             </div>
-            <div className="preview-box">{renderPreview()}</div>
+            <textarea
+              className="preview-box editable"
+              value={editedPrompt}
+              onChange={(e) => setEditedPrompt(e.target.value)}
+              placeholder="プロンプトがここに表示されます"
+            />
           </div>
         </div>
         <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: '12px', backgroundColor: 'var(--card)', zIndex: 10, flexShrink: 0, flexWrap: 'wrap' }}>

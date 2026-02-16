@@ -492,6 +492,20 @@ body.dark .prompt-textarea { background-color: rgba(255, 255, 255, 0.04); }
   box-shadow: inset 0 1px 3px 0 rgba(0, 0, 0, 0.03);
   font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
   color: var(--ink);
+  resize: none;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+.preview-box.editable {
+  cursor: text;
+}
+.preview-box.editable:hover {
+  border-color: var(--ink3);
+}
+.preview-box.editable:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: inset 0 1px 3px 0 rgba(0, 0, 0, 0.03), 0 0 0 3px var(--primary-glow);
 }
 
 /* ─── CrudModal Form ─────────────────────────────────────────────────────── */
