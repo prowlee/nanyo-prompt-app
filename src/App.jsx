@@ -225,9 +225,12 @@ const CrudModal = ({ item, onSave, onDelete, onClose }) => {
   const isEdit = !!item;
   return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
-        <h2 style={{ padding: '24px 24px 0', fontSize: '18px' }}>{isEdit ? "プロンプトを編集" : "新規プロンプトを追加"}</h2>
-        <div style={{ padding: '24px' }}>
+      <div className="modal" style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>{isEdit ? "プロンプトを編集" : "新規プロンプトを追加"}</h2>
+          <p>{isEdit ? `#${item.id} の内容を変更します` : "オリジナルのプロンプトを登録できます"}</p>
+        </div>
+        <div className="modal-body">
           <div className="form-group">
             <label>タイトル *</label>
             <input className="form-control" value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="例: 議事録を要約するプロンプト" autoFocus />
@@ -243,11 +246,11 @@ const CrudModal = ({ item, onSave, onDelete, onClose }) => {
             <input className="form-control" value={form.c2} onChange={(e) => set("c2", e.target.value)} placeholder="例: 文書作成" />
           </div>
           <div className="form-group">
-            <label>URL (任意)</label>
+            <label>URL（任意）</label>
             <input className="form-control" value={form.url || ""} onChange={(e) => set("url", e.target.value)} placeholder="https://..." />
           </div>
           <div className="modal-actions">
-            {isEdit && <button className="btn-action btn-text" style={{ color: '#ef4444' }} onClick={() => onDelete(item.id)}><Icons.Trash /> 削除</button>}
+            {isEdit && <button className="btn-action btn-text" onClick={() => onDelete(item.id)}><Icons.Trash /> 削除</button>}
             <div style={{ flex: 1 }} />
             <button className="btn-action btn-outline" onClick={onClose}>キャンセル</button>
             <button className="btn-action btn-primary" onClick={() => form.title && onSave(form)} disabled={!form.title}>{isEdit ? "保存" : "追加"}</button>
@@ -368,14 +371,14 @@ export default function App() {
         {paged.length === 0 ? (
           <div className="empty-state"><span className="empty-icon">📂</span><p>見つかりませんでした</p></div>
         ) : (
-          paged.map(p => {
+          paged.map((p, idx) => {
             const col = getColor(p.c1, darkMode);
             return (
-              <div 
-                key={p.id} 
-                className={`card ${viewMode==='list'?'list-mode':''}`} 
+              <div
+                key={p.id}
+                className={`card ${viewMode==='list'?'list-mode':''}`}
                 onClick={() => p.isUser && setModal(p)}
-                style={{ cursor: p.isUser ? 'pointer' : 'default' }}
+                style={{ cursor: p.isUser ? 'pointer' : 'default', '--i': idx }}
               >
                 <button className={`fav-btn ${favs.has(p.id)?'active':''}`} onClick={(e)=>{e.stopPropagation();toggleFav(p.id)}}>{favs.has(p.id)?'♥':'♡'}</button>
                 <div className="card-body">
