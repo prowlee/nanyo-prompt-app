@@ -46,6 +46,9 @@ const Icons = {
   HeartFilled: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
   FolderOpen: () => <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 14 1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2"/></svg>,
   Zap: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  Maximize: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
+  Restore: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
+  GripResize: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="22" y1="2" x2="2" y2="22"/><line x1="22" y1="10" x2="10" y2="22"/><line x1="22" y1="18" x2="18" y2="22"/></svg>,
 };
 
 // Category icon mapping
@@ -265,8 +268,8 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool, useQ
   const hasForm = allPlaceholders.length > 0;
 
   return createPortal(
-    <div className="modal-backdrop run-modal-backdrop" onClick={onClose}>
-      <div className={`modal run-modal ${isMaximized ? 'run-modal-maximized' : ''}`} onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop run-modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className={`modal run-modal ${isMaximized ? 'run-modal-maximized' : ''}`}>
         {/* ─── Header (compact on mobile) ─── */}
         <div className="run-modal-header">
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -281,6 +284,13 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool, useQ
               title="AIツールの設定"
             >
               <Icons.Settings />
+            </button>
+            <button
+              onClick={() => setIsMaximized(!isMaximized)}
+              className="run-modal-icon-btn hide-mobile"
+              title={isMaximized ? "元のサイズに戻す" : "全画面表示"}
+            >
+              {isMaximized ? <Icons.Restore /> : <Icons.Maximize />}
             </button>
             <button onClick={onClose} className="run-modal-icon-btn" style={{ fontSize: '20px', color: 'var(--ink2)' }}>×</button>
           </div>
@@ -332,16 +342,7 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool, useQ
           <div className="prompt-preview">
             <div className="preview-header">
               <h3 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--ink2)', margin: 0 }}>プロンプト プレビュー</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '10px', color: 'var(--ink3)' }}>編集可能</span>
-                <button
-                  className="preview-maximize-btn"
-                  onClick={() => setIsMaximized(!isMaximized)}
-                  title={isMaximized ? "元に戻す" : "全画面プレビュー"}
-                >
-                  {isMaximized ? '⊟' : '⊞'}
-                </button>
-              </div>
+              <span style={{ fontSize: '10px', color: 'var(--ink3)' }}>編集可能</span>
             </div>
             <textarea
               className="preview-box editable"
@@ -362,6 +363,7 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool, useQ
             {copyStatus ? "Copied!" : <><Icons.Copy /> コピー</>}
           </button>
         </div>
+        {!isMaximized && <span className="resize-grip hide-mobile"><Icons.GripResize /></span>}
       </div>
     </div>,
     document.body

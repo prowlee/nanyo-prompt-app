@@ -570,9 +570,14 @@ body.dark .card-footer { background: rgba(255, 255, 255, 0.03); }
 
 /* ─── PromptRunModal: Full Layout ───────────────────────────────────────── */
 .run-modal {
-  max-width: 960px;
+  max-width: 1200px;
+  width: 90vw;
   height: 80vh;
-  max-height: 800px;
+  max-height: 90vh;
+  min-width: 480px;
+  min-height: 400px;
+  resize: both;
+  overflow: hidden;
 }
 
 @media (max-width: 767px) {
@@ -588,6 +593,7 @@ body.dark .card-footer { background: rgba(255, 255, 255, 0.03); }
     height: 100dvh;
     max-height: none;
     height: calc(100dvh - var(--keyboard-offset, 0px));
+    resize: none;
   }
 }
 
@@ -749,49 +755,33 @@ body.dark .card-footer { background: rgba(255, 255, 255, 0.03); }
   flex-shrink: 0;
 }
 
-/* ─── Preview Maximize Button ───────────────────────────────────────────── */
-.preview-maximize-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
-  background: var(--card);
+/* ─── Resize Grip ──────────────────────────────────────────────────────── */
+.resize-grip {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
   color: var(--ink3);
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
+  opacity: 0.4;
+  pointer-events: none;
+  line-height: 0;
+  transition: opacity 0.15s ease;
 }
-.preview-maximize-btn:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  background: var(--primary-light);
+.run-modal:hover .resize-grip {
+  opacity: 0.7;
 }
 
 /* ─── Maximized Mode ────────────────────────────────────────────────────── */
-.run-modal-maximized .run-modal-header,
-.run-modal-maximized .run-modal-settings,
-.run-modal-maximized .mobile-tab-bar,
-.run-modal-maximized .run-modal-footer {
-  display: none;
+.run-modal-maximized {
+  max-width: none !important;
+  width: calc(100vw - 40px) !important;
+  height: calc(100vh - 40px) !important;
+  max-height: none !important;
+  resize: none;
 }
-.run-modal-maximized .modal-content-wrapper {
-  grid-template-columns: 1fr !important;
-}
-.run-modal-maximized .prompt-form {
-  display: none;
-}
-.run-modal-maximized .prompt-preview {
-  display: flex;
-}
-@supports (padding-top: env(safe-area-inset-top)) {
-  .run-modal-maximized .prompt-preview {
-    padding-top: calc(16px + env(safe-area-inset-top));
-  }
+
+/* ─── Hide on mobile ───────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .hide-mobile { display: none !important; }
 }
 
 /* ─── Modal Layout (PromptRunModal) ──────────────────────────────────────── */
