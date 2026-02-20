@@ -527,7 +527,7 @@ export default function App() {
         <div className="header-inner">
           <div className="logo">
             <h1>南陽市DX <span>Prompts</span></h1>
-            <p>生成AI活用実例集 745+ ({prompts.length})</p>
+            <p>生成AI活用実例集 {prompts.length}件</p>
           </div>
           <div className="header-controls">
             <button className={`btn-icon ${darkMode ? 'active' : ''}`} onClick={()=>setDarkMode(!darkMode)}>{darkMode ? <Icons.Moon /> : <Icons.Sun />}</button>
