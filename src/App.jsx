@@ -499,17 +499,21 @@ export default function App() {
   });
   const searchRef = useRef(null);
   const isComposingRef = useRef(false);
-  const [introEnabled, setIntroEnabled] = useState(() => {
-    try { return !localStorage.getItem(STORAGE_KEY + "_intro_done"); } catch { return true; }
-  });
+  const [introEnabled, setIntroEnabled] = useState(false);
+  const introChecked = useRef(false);
 
-  const introSteps = [
-    { element: '.logo', intro: '<strong>南陽市DX Prompts</strong><br/>山形県南陽市が公開する生成AI活用プロンプト集を検索・活用できるアプリです。' },
-    { element: '.search-box', intro: '<strong>検索</strong><br/>キーワード、プロンプトID（例: 001）、カテゴリ名で検索できます。あいまい検索にも対応しています。' },
-    { element: '.filters', intro: '<strong>カテゴリフィルタ</strong><br/>カテゴリボタンで絞り込めます。「新着」や「お気に入り」でも絞り込みが可能です。' },
-    { element: '.grid .card:first-child', intro: '<strong>プロンプトカード</strong><br/>クリックするとプロンプトの詳細を表示。「コピーしてAIで使う」でChatGPT・Gemini・Claudeに貼り付けて使えます。' },
-    { element: '.header-controls', intro: '<strong>ツールバー</strong><br/>ダークモード切替、表示切替（グリッド/リスト）、ヘルプ、カスタムプロンプトの追加ができます。' },
-  ];
+  const introSteps = useMemo(() => {
+    const steps = [
+      { element: '.logo', intro: '<strong>南陽市DX Prompts</strong><br/>山形県南陽市が公開する生成AI活用プロンプト集を検索・活用できるアプリです。' },
+      { element: '.search-box', intro: '<strong>検索</strong><br/>キーワード、プロンプトID（例: 001）、カテゴリ名で検索できます。あいまい検索にも対応しています。' },
+      { element: '.filters', intro: '<strong>カテゴリフィルタ</strong><br/>カテゴリボタンで絞り込めます。「新着」や「お気に入り」でも絞り込みが可能です。' },
+    ];
+    if (document.querySelector('.grid .card')) {
+      steps.push({ element: '.grid .card', intro: '<strong>プロンプトカード</strong><br/>クリックするとプロンプトの詳細を表示。「コピーしてAIで使う」でChatGPT・Gemini・Claudeに貼り付けて使えます。' });
+    }
+    steps.push({ element: '.header-controls', intro: '<strong>ツールバー</strong><br/>ダークモード切替、表示切替（グリッド/リスト）、ヘルプ、カスタムプロンプトの追加ができます。' });
+    return steps;
+  }, [introEnabled]);
 
   useEffect(() => {
     if (darkMode) { document.body.classList.add('dark'); localStorage.setItem(STORAGE_KEY + "_theme", "dark"); } 
@@ -524,6 +528,19 @@ export default function App() {
       localStorage.setItem(STORAGE_KEY + "_use_query", String(useQuery));
     }
   }, [prompts, favs, isLoaded, selectedAiTool, useQuery]);
+
+  useEffect(() => {
+    if (!isLoaded || introChecked.current) return;
+    introChecked.current = true;
+    try {
+      if (!localStorage.getItem(STORAGE_KEY + "_intro_done")) {
+        const timer = setTimeout(() => {
+          if (document.querySelector('.grid .card')) setIntroEnabled(true);
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    } catch {}
+  }, [isLoaded]);
 
   // ─── 検索デバウンス: 日本語IME変換確定を待つ ───
   useEffect(() => {
