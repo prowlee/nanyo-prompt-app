@@ -1040,54 +1040,80 @@ html {
   }
 }
 
-/* ─── Intro.js Customization ──────────────────────────────────────────── */
-.introjs-tooltip {
-  font-family: inherit;
+/* ─── Onboarding Overlay ──────────────────────────────────────────────── */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.6);
+}
+.onboarding-highlight {
+  position: fixed;
   border-radius: 12px;
-  max-width: 360px;
-  font-size: 0.88rem;
-  line-height: 1.7;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  border: 2px solid var(--primary, #4f46e5);
+  pointer-events: none;
+  transition: all 0.3s ease;
 }
-.introjs-tooltip-header {
-  display: none;
-}
-.introjs-tooltiptext {
+.onboarding-tooltip {
+  position: fixed;
+  width: min(320px, 90vw);
+  background: var(--card, #fff);
+  color: var(--ink, #1a1a2e);
+  border-radius: 12px;
   padding: 16px 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  z-index: 10001;
+  animation: onboarding-fade 0.25s ease;
 }
-.introjs-button {
-  font-family: inherit;
-  font-size: 0.82rem;
-  border-radius: 6px;
-  padding: 6px 14px;
-  text-shadow: none;
+@keyframes onboarding-fade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.introjs-button:focus {
-  box-shadow: none;
+.onboarding-step-count {
+  font-size: 0.72rem;
+  color: var(--ink2, #888);
+  margin-bottom: 4px;
 }
-.introjs-progressbar {
+.onboarding-tooltip h4 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.onboarding-tooltip p {
+  margin: 0 0 14px;
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: var(--text-secondary, #666);
+}
+.onboarding-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.onboarding-skip {
+  background: none;
+  border: none;
+  color: var(--ink2, #888);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.onboarding-skip:hover {
+  color: var(--ink, #333);
+}
+.onboarding-next {
   background: var(--primary, #4f46e5);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
 }
-.introjs-helperLayer {
-  border-radius: 12px;
-}
-body.dark .introjs-tooltip {
-  background: var(--card, #1e1e2e);
-  color: var(--ink, #e0e0e0);
-}
-body.dark .introjs-arrow.top { border-bottom-color: var(--card, #1e1e2e); }
-body.dark .introjs-arrow.bottom { border-top-color: var(--card, #1e1e2e); }
-body.dark .introjs-arrow.left { border-right-color: var(--card, #1e1e2e); }
-body.dark .introjs-arrow.right { border-left-color: var(--card, #1e1e2e); }
-body.dark .introjs-button {
-  background: var(--card, #1e1e2e);
-  color: var(--ink, #e0e0e0);
-  border-color: var(--border, #333);
-}
-body.dark .introjs-button:hover {
-  background: var(--border, #333);
-}
-body.dark .introjs-skipbutton {
-  color: var(--ink2, #999);
+.onboarding-next:hover {
+  opacity: 0.9;
 }
 
 /* ─── Footer ──────────────────────────────────────────────────────────── */

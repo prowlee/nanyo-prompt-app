@@ -1,7 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Steps } from "intro.js-react";
-import "intro.js/introjs.css";
 import "./App.css";
 import { RAW, INITIAL_PROMPTS } from "./data/prompts";
 import contentsData from "./data/contents.json";
@@ -86,6 +84,57 @@ const CAT_COLORS = {
 const getColor = (c1, isDark) => {
   const cfg = CAT_COLORS[c1] || CAT_COLORS["その他"];
   return isDark ? { bg: cfg.darkBg, fg: cfg.darkFg } : cfg;
+};
+
+// ─── Onboarding Overlay ──────────────────────────────────────────────────────
+const OnboardingOverlay = ({ steps, currentStep, onNext, onSkip }) => {
+  const [pos, setPos] = useState(null);
+  const step = steps[currentStep];
+
+  useEffect(() => {
+    if (!step) return;
+    const el = document.querySelector(step.selector);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const r = el.getBoundingClientRect();
+      setPos({ top: r.top, left: r.left, width: r.width, height: r.height });
+    } else {
+      setPos(null);
+    }
+  }, [currentStep, step]);
+
+  const isLast = currentStep >= steps.length - 1;
+  const tooltipStyle = {};
+  if (pos) {
+    const below = pos.top + pos.height + 12;
+    const above = pos.top - 12;
+    if (below + 160 < window.innerHeight) {
+      tooltipStyle.top = below + 'px';
+    } else {
+      tooltipStyle.bottom = (window.innerHeight - above) + 'px';
+    }
+    tooltipStyle.left = Math.max(12, Math.min(pos.left, window.innerWidth - 340)) + 'px';
+  } else {
+    tooltipStyle.top = '50%';
+    tooltipStyle.left = '50%';
+    tooltipStyle.transform = 'translate(-50%, -50%)';
+  }
+
+  return createPortal(
+    <div className="onboarding-overlay" onClick={onSkip}>
+      {pos && <div className="onboarding-highlight" style={{ top: pos.top - 4, left: pos.left - 4, width: pos.width + 8, height: pos.height + 8 }} />}
+      <div className="onboarding-tooltip" style={tooltipStyle} onClick={e => e.stopPropagation()}>
+        <div className="onboarding-step-count">{currentStep + 1} / {steps.length}</div>
+        <h4>{step?.title}</h4>
+        <p>{step?.text}</p>
+        <div className="onboarding-actions">
+          <button className="onboarding-skip" onClick={onSkip}>スキップ</button>
+          <button className="onboarding-next" onClick={onNext}>{isLast ? '始める' : '次へ →'}</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
 };
 
 // ─── Modal: HelpModal ────────────────────────────────────────────────────────
@@ -524,21 +573,16 @@ export default function App() {
   });
   const searchRef = useRef(null);
   const isComposingRef = useRef(false);
-  const [introEnabled, setIntroEnabled] = useState(false);
-  const introChecked = useRef(false);
+  const introCheckedRef = useRef(false);
+  const [introStep, setIntroStep] = useState(-1);
 
-  const introSteps = useMemo(() => {
-    const steps = [
-      { element: '.logo', intro: '<strong>南陽市DX Prompts</strong><br/>山形県南陽市が公開する生成AI活用プロンプト集を検索・活用できるアプリです。' },
-      { element: '.search-box', intro: '<strong>検索</strong><br/>キーワード、プロンプトID（例: 001）、カテゴリ名で検索できます。あいまい検索にも対応しています。' },
-      { element: '.filters', intro: '<strong>カテゴリフィルタ</strong><br/>カテゴリボタンで絞り込めます。「新着」や「お気に入り」でも絞り込みが可能です。' },
-    ];
-    if (document.querySelector('.grid .card')) {
-      steps.push({ element: '.grid .card', intro: '<strong>プロンプトカード</strong><br/>クリックするとプロンプトの詳細を表示。「コピーしてAIで使う」でChatGPT・Gemini・Claudeに貼り付けて使えます。' });
-    }
-    steps.push({ element: '.header-controls', intro: '<strong>ツールバー</strong><br/>ダークモード切替、表示切替（グリッド/リスト）、ヘルプ、カスタムプロンプトの追加ができます。' });
-    return steps;
-  }, [introEnabled]);
+  const INTRO_STEPS = [
+    { selector: '.logo', title: '南陽市DX Prompts', text: '山形県南陽市が公開する生成AI活用プロンプト集を検索・活用できるアプリです。' },
+    { selector: '.search-box', title: '検索', text: 'キーワード、プロンプトID（例: 001）、カテゴリ名で検索できます。あいまい検索にも対応。' },
+    { selector: '.filters', title: 'カテゴリフィルタ', text: 'カテゴリボタンで絞り込み。「新着」「お気に入り」でも絞り込めます。' },
+    { selector: '.grid .card', title: 'プロンプトカード', text: '「AIで実行」でプロンプトをコピーし、ChatGPT・Gemini・Claudeに貼り付けて使えます。' },
+    { selector: '.header-controls', title: 'ツールバー', text: 'ダークモード、表示切替、ヘルプ（?）、カスタムプロンプト追加ができます。' },
+  ];
 
   useEffect(() => {
     if (darkMode) { document.body.classList.add('dark'); localStorage.setItem(STORAGE_KEY + "_theme", "dark"); } 
@@ -554,27 +598,29 @@ export default function App() {
     }
   }, [prompts, favs, isLoaded, selectedAiTool, useQuery]);
 
+  // intro: 初回チェック（DOM描画後）
   useEffect(() => {
-    if (introChecked.current) return;
+    if (introCheckedRef.current) return;
+    introCheckedRef.current = true;
     try {
       if (localStorage.getItem(STORAGE_KEY + "_intro_done")) return;
     } catch { return; }
-    introChecked.current = true;
-
-    let attempts = 0;
-    const check = setInterval(() => {
-      attempts++;
-      if (document.querySelector('.grid .card')) {
-        clearInterval(check);
-        setIntroEnabled(true);
-      } else if (attempts > 20) {
-        clearInterval(check);
-        // カードなしでもロゴから開始
-        setIntroEnabled(true);
-      }
-    }, 200);
-    return () => clearInterval(check);
+    const timer = setTimeout(() => setIntroStep(0), 600);
+    return () => clearTimeout(timer);
   }, []);
+
+  // intro: Escで閉じる
+  useEffect(() => {
+    if (introStep < 0) return;
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        setIntroStep(-1);
+        try { localStorage.setItem(STORAGE_KEY + "_intro_done", "1"); } catch {}
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [introStep]);
 
   // ─── グローバルキーボードショートカット ───
   useEffect(() => {
@@ -708,24 +754,17 @@ export default function App() {
 
   return (
     <div className="app">
-      <Steps
-        enabled={introEnabled}
-        steps={introSteps}
-        initialStep={0}
-        onExit={() => {
-          setIntroEnabled(false);
+      {introStep >= 0 && <OnboardingOverlay steps={INTRO_STEPS} currentStep={introStep} onNext={() => {
+        if (introStep < INTRO_STEPS.length - 1) {
+          setIntroStep(introStep + 1);
+        } else {
+          setIntroStep(-1);
           try { localStorage.setItem(STORAGE_KEY + "_intro_done", "1"); } catch {}
-        }}
-        options={{
-          nextLabel: '次へ',
-          prevLabel: '戻る',
-          doneLabel: '始める',
-          showBullets: true,
-          showProgress: true,
-          exitOnOverlayClick: true,
-          scrollToElement: true,
-        }}
-      />
+        }
+      }} onSkip={() => {
+        setIntroStep(-1);
+        try { localStorage.setItem(STORAGE_KEY + "_intro_done", "1"); } catch {}
+      }} />}
       <header className="header">
         <div className="header-inner">
           <div className="logo">
