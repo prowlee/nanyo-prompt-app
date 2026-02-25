@@ -611,6 +611,9 @@ export default function App() {
               本アプリは南陽市の公式サービスではなく、公開データを活用した個人開発のプロジェクトです。
             </p>
           </div>
+          <div className="footer-developer">
+            開発：Ito Atsushi（<a href="https://github.com/BoxPistols/nanyo-prompt-app" target="_blank" rel="noopener noreferrer">GitHub</a> / <a href="https://x.com/AsagiriDesign" target="_blank" rel="noopener noreferrer">X</a>）｜<a href="https://github.com/BoxPistols/nanyo-prompt-app/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a>
+          </div>
           <details className="footer-disclaimer">
             <summary>免責事項</summary>
             <div className="footer-disclaimer-body">
