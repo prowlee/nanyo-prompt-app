@@ -573,7 +573,6 @@ export default function App() {
   });
   const searchRef = useRef(null);
   const isComposingRef = useRef(false);
-  const introCheckedRef = useRef(false);
   const [introStep, setIntroStep] = useState(-1);
 
   const INTRO_STEPS = [
@@ -600,12 +599,12 @@ export default function App() {
 
   // intro: 初回チェック（DOM描画後）
   useEffect(() => {
-    if (introCheckedRef.current) return;
-    introCheckedRef.current = true;
     try {
       if (localStorage.getItem(STORAGE_KEY + "_intro_done")) return;
     } catch { return; }
-    const timer = setTimeout(() => setIntroStep(0), 600);
+    const timer = setTimeout(() => {
+      setIntroStep(prev => prev === -1 ? 0 : prev);
+    }, 800);
     return () => clearTimeout(timer);
   }, []);
 
