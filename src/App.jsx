@@ -14,7 +14,6 @@ const AI_TOOLS = [
   { id: 'chatgpt', name: 'ChatGPT', url: 'https://chatgpt.com/', query: '' },
   { id: 'gemini', name: 'Gemini', url: 'https://gemini.google.com/app', query: '' },
   { id: 'claude', name: 'Claude', url: 'https://claude.ai/new', query: '' },
-  { id: 'qwen', name: 'Qwen', url: 'https://chat.qwenlm.ai/', query: '' },
 ];
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
