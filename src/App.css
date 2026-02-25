@@ -375,6 +375,8 @@ body.dark .chip.active { box-shadow: 0 1px 4px rgba(124, 131, 196, 0.25); }
   position: relative;
 }
 .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
+.card:focus { outline: 2px solid var(--primary); outline-offset: 2px; transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.card:focus:not(:focus-visible) { outline: none; transform: none; box-shadow: none; }
 
 .card-body { padding: 16px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
 

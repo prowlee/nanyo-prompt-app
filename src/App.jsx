@@ -136,11 +136,14 @@ const HelpModal = ({ onClose }) => {
             <ul className="help-shortcuts">
               <li><kbd>{MOD_LABEL}+K</kbd> 検索にフォーカス</li>
               <li><kbd>?</kbd> このヘルプを表示</li>
-              <li><kbd>D</kbd> ダークモード / <kbd>L</kbd> ライトモード</li>
-              <li><kbd>G</kbd> グリッド表示 / <kbd>Shift+L</kbd> リスト表示</li>
+              <li><kbd>D</kbd> ダーク / ライト切替</li>
+              <li><kbd>G</kbd> グリッド表示 / <kbd>L</kbd> リスト表示</li>
+              <li><kbd>J</kbd> 最初のカードにフォーカス</li>
+              <li><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> カード間を移動</li>
+              <li><kbd>Enter</kbd> フォーカス中のカードを開く</li>
               <li><kbd>Esc</kbd> モーダルを閉じる</li>
             </ul>
-            <p className="help-shortcut-note">※ テキスト入力中はショートカットは無効です</p>
+            <p className="help-shortcut-note">※ テキスト入力中は {MOD_LABEL}+K 以外のショートカットは無効です</p>
           </section>
 
           <section className="help-section">
@@ -573,12 +576,49 @@ export default function App() {
       return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
     };
 
+    const getCards = () => Array.from(document.querySelectorAll('.grid .card'));
+    const getFocusedCardIndex = () => {
+      const cards = getCards();
+      return cards.indexOf(document.activeElement);
+    };
+
+    const focusCard = (index) => {
+      const cards = getCards();
+      if (cards[index]) { cards[index].focus(); }
+    };
+
+    const getGridColumns = () => {
+      const grid = document.querySelector('.grid');
+      if (!grid) return 1;
+      const style = getComputedStyle(grid);
+      const cols = style.getPropertyValue('grid-template-columns').split(' ').length;
+      return cols || 1;
+    };
+
     const handleKeydown = (e) => {
       // Cmd/Ctrl+K: 検索フォーカス（入力中でも発火）
       if (e[MOD_KEY] && e.key === 'k') {
         e.preventDefault();
         searchRef.current?.focus();
         return;
+      }
+
+      // カードフォーカス中の矢印キー・Enter
+      const cardIdx = getFocusedCardIndex();
+      if (cardIdx >= 0) {
+        const cards = getCards();
+        const cols = getGridColumns();
+        switch (e.key) {
+          case 'ArrowRight': e.preventDefault(); focusCard(Math.min(cardIdx + 1, cards.length - 1)); return;
+          case 'ArrowLeft': e.preventDefault(); focusCard(Math.max(cardIdx - 1, 0)); return;
+          case 'ArrowDown': e.preventDefault(); focusCard(Math.min(cardIdx + cols, cards.length - 1)); return;
+          case 'ArrowUp': e.preventDefault(); focusCard(Math.max(cardIdx - cols, 0)); return;
+          case 'Enter':
+            e.preventDefault();
+            const p = paged[cardIdx];
+            if (p) setRunModal(p);
+            return;
+        }
       }
 
       // 入力中はその他のショートカットを無効化
@@ -594,25 +634,25 @@ export default function App() {
           break;
         case 'd': case 'D':
           e.preventDefault();
-          setDarkMode(true);
-          break;
-        case 'l':
-          e.preventDefault();
-          setDarkMode(false);
+          setDarkMode(prev => !prev);
           break;
         case 'g': case 'G':
           e.preventDefault();
           setViewMode('grid');
           break;
-        case 'L':
+        case 'l': case 'L':
           e.preventDefault();
           setViewMode('list');
+          break;
+        case 'j': case 'J':
+          e.preventDefault();
+          focusCard(0);
           break;
       }
     };
     document.addEventListener('keydown', handleKeydown);
     return () => document.removeEventListener('keydown', handleKeydown);
-  }, [modal, runModal, helpModal]);
+  }, [modal, runModal, helpModal, paged]);
 
   // ─── 検索デバウンス: 日本語IME変換確定を待つ ───
   useEffect(() => {
@@ -748,6 +788,7 @@ export default function App() {
               <div
                 key={p.id}
                 className={`card ${viewMode==='list'?'list-mode':''}`}
+                tabIndex={0}
                 onClick={() => p.isUser && setModal(p)}
                 style={{ '--i': idx }}
               >
