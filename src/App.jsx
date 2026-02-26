@@ -138,7 +138,7 @@ const OnboardingOverlay = ({ steps, currentStep, onNext, onSkip }) => {
 };
 
 // ─── Modal: HelpModal ────────────────────────────────────────────────────────
-const HelpModal = ({ onClose, onStartTour }) => {
+const HelpModal = ({ onClose, onStartTour, onResetData }) => {
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handleEsc);
@@ -227,6 +227,12 @@ const HelpModal = ({ onClose, onStartTour }) => {
               <li>元のプロンプトデータは試行的な取り組みとして提供されており、予告なく内容の変更または公開が中止される場合があります。</li>
             </ul>
           </section>
+
+          <section className="help-section help-reset-section">
+            <h3>データの初期化</h3>
+            <p>お気に入り、カスタムプロンプト、テーマ設定、オンボーディング履歴など、すべてのローカルデータを削除して初期状態に戻します。</p>
+            <button className="help-reset-btn" onClick={onResetData}>すべてのデータを初期化</button>
+          </section>
         </div>
       </div>
     </div>,
@@ -234,11 +240,98 @@ const HelpModal = ({ onClose, onStartTour }) => {
   );
 };
 
-// ─── Modal: PromptRunModal ──────────────────────────────────────────────────
+// ─── Modal: PromptRunModal & モーダル内オンボーディング ──────────────────────
+const MODAL_INTRO_STEPS = [
+  {
+    selector: '.modal-content-wrapper',
+    title: 'プロンプトの使い方',
+    text: 'このモーダルでは、プロンプトに情報を入力してAIに送るテキストを作成できます。順に説明します。',
+  },
+  {
+    selector: '.prompt-form',
+    title: '入力フォーム',
+    text: '左側のフォームに情報を入力すると、右側のプレビューにリアルタイムで反映されます。',
+    fallbackSelector: '.prompt-preview',
+    fallbackText: 'プレビュー欄は直接編集もできます。自由にテキストを調整してください。',
+    mobileTab: 'form',
+  },
+  {
+    selector: '.prompt-preview',
+    title: 'プレビュー確認',
+    text: '完成したプロンプトをここで確認できます。内容を直接編集することもできます。',
+    mobileTab: 'preview',
+  },
+  {
+    selector: '.run-modal-footer',
+    title: 'コピー & AI貼付',
+    text: '「コピー」でクリップボードに保存。「AI貼付」でコピー後にAIツールを自動で開きます。',
+  },
+];
+
+const ModalOnboarding = ({ currentStep, totalSteps, step, onNext, onSkip, containerRef }) => {
+  const [pos, setPos] = useState(null);
+
+  useEffect(() => {
+    if (!step || !containerRef.current) return;
+    const container = containerRef.current;
+    const el = container.querySelector(step.selector)
+      || (step.fallbackSelector && container.querySelector(step.fallbackSelector));
+    if (el) {
+      const r = el.getBoundingClientRect();
+      setPos({ top: r.top, left: r.left, width: r.width, height: r.height });
+    } else {
+      setPos(null);
+    }
+  }, [currentStep, step, containerRef]);
+
+  const isLast = currentStep >= totalSteps - 1;
+
+  const tooltipStyle = {};
+  if (pos) {
+    const below = pos.top + pos.height + 12;
+    if (below + 160 < window.innerHeight) {
+      tooltipStyle.top = (pos.top + pos.height + 12) + 'px';
+    } else {
+      tooltipStyle.bottom = (window.innerHeight - pos.top + 12) + 'px';
+    }
+    tooltipStyle.left = Math.max(12, Math.min(pos.left, window.innerWidth - 340)) + 'px';
+  } else {
+    tooltipStyle.top = '50%';
+    tooltipStyle.left = '50%';
+    tooltipStyle.transform = 'translate(-50%, -50%)';
+  }
+
+  return (
+    <div className="modal-onboarding-overlay" onClick={onSkip}>
+      {pos && (
+        <div className="modal-onboarding-highlight" style={{
+          top: pos.top - 4,
+          left: pos.left - 4,
+          width: pos.width + 8,
+          height: pos.height + 8,
+        }} />
+      )}
+      <div className="onboarding-tooltip" style={{ ...tooltipStyle, zIndex: 10003 }} onClick={e => e.stopPropagation()}>
+        <div className="onboarding-step-count">{currentStep + 1} / {totalSteps}</div>
+        <h4>{step?.title}</h4>
+        <p>{step?.fallbackSelector && containerRef.current && !containerRef.current.querySelector(step.selector) ? step.fallbackText : step?.text}</p>
+        <div className="onboarding-actions">
+          <button className="onboarding-skip" onClick={onSkip}>スキップ</button>
+          <button className="onboarding-next" onClick={onNext}>{isLast ? '始める' : '次へ →'}</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [mobileTab, setMobileTab] = useState("preview"); // "preview" | "form"
   const [isMaximized, setIsMaximized] = useState(false);
+  const modalRef = useRef(null);
+
+  // モーダル内オンボーディング
+  const [modalIntroStep, setModalIntroStep] = useState(-1);
   // コンテンツ解析: 本文抽出、セクション変数抽出、UI混入テキスト除去
   const { promptText, inlinePlaceholders, additionalVars, allPlaceholders } = useMemo(() => {
     let content = (contentsData[item.id] || "プロンプトの本文が読み込めませんでした。")
@@ -285,9 +378,28 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool }) =>
   const [pasteStatus, setPasteStatus] = useState(false);
   const [editedPrompt, setEditedPrompt] = useState("");
 
+  // モーダルオンボーディング: 初回チェック
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(STORAGE_KEY + "_modal_intro_done")) return;
+    } catch { return; }
+    const timer = setTimeout(() => {
+      setModalIntroStep(0);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const dismissModalIntro = () => {
+    setModalIntroStep(-1);
+    try { localStorage.setItem(STORAGE_KEY + "_modal_intro_done", "1"); } catch {}
+  };
+
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key === 'Escape') {
+        if (modalIntroStep >= 0) { dismissModalIntro(); return; }
+        onClose(); return;
+      }
       const tag = document.activeElement?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
       if (e.key === 'f' || e.key === 'F') { e.preventDefault(); setIsMaximized(v => !v); }
@@ -295,7 +407,7 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool }) =>
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose]);
+  }, [onClose, modalIntroStep]);
 
   // ─── Keyboard awareness via visualViewport API ───
   useEffect(() => {
@@ -376,9 +488,36 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool }) =>
 
   const hasForm = allPlaceholders.length > 0;
 
+  // フォームがない場合はステップ1（入力フォーム）をスキップ
+  const introSteps = hasForm ? MODAL_INTRO_STEPS : MODAL_INTRO_STEPS.filter((_, i) => i !== 1);
+  const currentIntroStep = introSteps[modalIntroStep];
+
+  // モバイル: オンボーディングのステップに応じてタブを自動切替
+  useEffect(() => {
+    if (modalIntroStep < 0 || !currentIntroStep?.mobileTab) return;
+    setMobileTab(currentIntroStep.mobileTab);
+  }, [modalIntroStep, currentIntroStep]);
+
+  const modalIntroContent = modalIntroStep >= 0 && currentIntroStep ? (
+    <ModalOnboarding
+      currentStep={modalIntroStep}
+      totalSteps={introSteps.length}
+      step={currentIntroStep}
+      containerRef={modalRef}
+      onNext={() => {
+        if (modalIntroStep < introSteps.length - 1) {
+          setModalIntroStep(modalIntroStep + 1);
+        } else {
+          dismissModalIntro();
+        }
+      }}
+      onSkip={dismissModalIntro}
+    />
+  ) : null;
+
   return createPortal(
-    <div className="modal-backdrop run-modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className={`modal run-modal ${isMaximized ? 'run-modal-maximized' : ''}`}>
+    <div className="modal-backdrop run-modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) { if (modalIntroStep >= 0) return; onClose(); } }}>
+      <div ref={modalRef} className={`modal run-modal ${isMaximized ? 'run-modal-maximized' : ''}`}>
         {/* ─── Header (compact on mobile) ─── */}
         <div className="run-modal-header">
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -473,6 +612,7 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool }) =>
           </button>
         </div>
         {!isMaximized && <span className="resize-grip hide-mobile"><Icons.GripResize /></span>}
+        {modalIntroContent}
       </div>
     </div>,
     document.body
@@ -761,6 +901,19 @@ export default function App() {
   };
   const handleDelete = (id) => { if(window.confirm("削除しますか？")) { setPrompts(prev => prev.filter(p => p.id !== id)); setModal(null); } };
 
+  const handleResetData = () => {
+    const ok = window.confirm(
+      "すべてのデータを初期化します。\n\nお気に入り、カスタムプロンプト、テーマ設定などが削除されます。この操作は元に戻せません。\n\n本当に初期化しますか？"
+    );
+    if (!ok) return;
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith(STORAGE_KEY))
+        .forEach(k => localStorage.removeItem(k));
+    } catch {}
+    window.location.reload();
+  };
+
   if (!isLoaded) return <div style={{padding:40, textAlign:'center'}}>Loading...</div>;
 
   return (
@@ -928,7 +1081,7 @@ export default function App() {
           setSelectedAiTool={setSelectedAiTool}
         />
       )}
-      {helpModal && <HelpModal onClose={() => setHelpModal(false)} onStartTour={() => { setHelpModal(false); setIntroStep(0); }} />}
+      {helpModal && <HelpModal onClose={() => setHelpModal(false)} onStartTour={() => { setHelpModal(false); setIntroStep(0); }} onResetData={handleResetData} />}
     </div>
   );
 }
