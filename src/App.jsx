@@ -138,7 +138,7 @@ const OnboardingOverlay = ({ steps, currentStep, onNext, onSkip }) => {
 };
 
 // ─── Modal: HelpModal ────────────────────────────────────────────────────────
-const HelpModal = ({ onClose, onStartTour, onResetData }) => {
+const HelpModal = ({ onClose, onStartTour, onResetData, onExport, onImport }) => {
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handleEsc);
@@ -226,6 +226,18 @@ const HelpModal = ({ onClose, onStartTour, onResetData }) => {
               <li>本アプリの利用または利用できなかったことによって生じた直接的・間接的な損害について、本アプリ開発者および南陽市は一切の責任を負いません。</li>
               <li>元のプロンプトデータは試行的な取り組みとして提供されており、予告なく内容の変更または公開が中止される場合があります。</li>
             </ul>
+          </section>
+
+          <section className="help-section">
+            <h3>データの管理</h3>
+            <p>カスタムプロンプトとお気に入りをJSONファイルとしてバックアップ・復元できます。</p>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+              <button className="help-tour-btn" onClick={onExport}>エクスポート</button>
+              <label className="help-tour-btn" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                インポート
+                <input type="file" accept=".json" style={{ display: 'none' }} onChange={onImport} />
+              </label>
+            </div>
           </section>
 
           <section className="help-section help-reset-section">
@@ -334,7 +346,7 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool }) =>
   const [modalIntroStep, setModalIntroStep] = useState(-1);
   // コンテンツ解析: 本文抽出、セクション変数抽出、UI混入テキスト除去
   const { promptText, inlinePlaceholders, additionalVars, allPlaceholders } = useMemo(() => {
-    let content = (contentsData[item.id] || "プロンプトの本文が読み込めませんでした。")
+    let content = (item.body || contentsData[item.id] || "プロンプトの本文が読み込めませんでした。")
       .replace(/[\s]*戻る[\s]*プロンプト作成[\s]*クリップボードにコピーされます。[\s]*$/, '')
       .replace(/\r\n/g, '\n')
       .replace(/\r/g, '\n');
@@ -635,46 +647,167 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool }) =>
 };
 
 // ─── Modal: CrudModal ────────────────────────────────────────────────────────
+const PROMPT_SECTIONS = [
+  { key: "purpose", label: "目的・ねらい", placeholder: "このプロンプトの目的を記述", rows: 2 },
+  { key: "role", label: "あなたの役割", placeholder: "例: あなたは優秀なアシスタントです", rows: 2 },
+  { key: "prerequisites", label: "前提条件", placeholder: "前提となる条件やリソースを記述", rows: 2 },
+  { key: "instructions", label: "実行指示 *", placeholder: "AIへの具体的な指示を記述\n{変数名} で変数を埋め込めます", rows: 4 },
+  { key: "rules", label: "ルール", placeholder: "守るべきルールや制約を記述", rows: 2 },
+  { key: "output", label: "出力形式", placeholder: "例: マークダウン形式で出力", rows: 2 },
+  { key: "supplement", label: "補足", placeholder: "補足事項があれば記述", rows: 2 },
+  { key: "variables", label: "変数設定", placeholder: "ユーザーが入力する変数名を改行区切りで記述\n例:\n対象の文章\n出力言語", rows: 2 },
+];
+
+const buildBody = (sections) => {
+  return PROMPT_SECTIONS
+    .filter(s => sections[s.key]?.trim())
+    .map(s => `${s.label.replace(/ \*$/, '')}\n${sections[s.key].trim()}`)
+    .join('\n\n');
+};
+
+const parseBody = (body) => {
+  if (!body) return {};
+  const result = {};
+  const labels = PROMPT_SECTIONS.map(s => s.label.replace(/ \*$/, ''));
+  const pattern = new RegExp(`^(${labels.join('|')})$`, 'm');
+  const parts = body.split(pattern).filter(Boolean);
+  for (let i = 0; i < parts.length - 1; i++) {
+    const label = parts[i].trim();
+    const sec = PROMPT_SECTIONS.find(s => s.label.replace(/ \*$/, '') === label);
+    if (sec) {
+      result[sec.key] = parts[i + 1].trim();
+      i++;
+    }
+  }
+  // body全体がセクション分割できない場合は instructionsに入れる
+  if (Object.keys(result).length === 0 && body.trim()) {
+    result.instructions = body.trim();
+  }
+  return result;
+};
+
 const CrudModal = ({ item, onSave, onDelete, onClose }) => {
-  const [form, setForm] = useState(item || { title: "", c1: RAW.c1[0], c2: "", url: "", isNew: false, isUser: true });
+  const [form, setForm] = useState(() => {
+    if (item) return { ...item };
+    return { title: "", c1: RAW.c1[0], c2: "", url: "", body: "", isNew: false, isUser: true };
+  });
+  const [sections, setSections] = useState(() => parseBody(form.body || ""));
+  const [showAllSections, setShowAllSections] = useState(() => {
+    const parsed = parseBody(form.body || "");
+    return Object.keys(parsed).length > 1;
+  });
+
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
+
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const setSec = (k, v) => setSections((s) => ({ ...s, [k]: v }));
   const isEdit = !!item;
+
+  const handleSubmit = () => {
+    if (!form.title) return;
+    const body = showAllSections ? buildBody(sections) : (sections.instructions || "");
+    onSave({ ...form, body });
+  };
+
+  const hasContent = form.title && (sections.instructions?.trim() || Object.values(sections).some(v => v?.trim()));
+
+  // 変数プレビュー
+  const bodyPreview = showAllSections ? buildBody(sections) : (sections.instructions || "");
+  const detectedVars = [...new Set((bodyPreview.match(/\{([^}]+)\}/g) || []))];
+
   return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal crud-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{isEdit ? "プロンプトを編集" : "新規プロンプトを追加"}</h2>
           <p>{isEdit ? `#${item.id} の内容を変更します` : "オリジナルのプロンプトを登録できます"}</p>
         </div>
-        <div className="modal-body">
+        <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <div className="form-group">
             <label>タイトル *</label>
             <input className="form-control" value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="例: 議事録を要約するプロンプト" autoFocus />
           </div>
-          <div className="form-group">
-            <label>カテゴリ（大）</label>
-            <select className="form-control" value={form.c1} onChange={(e) => set("c1", e.target.value)}>
-              {RAW.c1.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label>カテゴリ（大）</label>
+              <select className="form-control" value={form.c1} onChange={(e) => set("c1", e.target.value)}>
+                {RAW.c1.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label>カテゴリ（中）</label>
+              <input className="form-control" list="crud-c2-options" value={form.c2} onChange={(e) => set("c2", e.target.value)} placeholder="例: 文書作成" />
+              <datalist id="crud-c2-options">
+                {RAW.c2.map(c => <option key={c} value={c} />)}
+              </datalist>
+            </div>
           </div>
-          <div className="form-group">
-            <label>カテゴリ（中）</label>
-            <input className="form-control" value={form.c2} onChange={(e) => set("c2", e.target.value)} placeholder="例: 文書作成" />
+
+          <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '8px 0 16px' }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <label style={{ fontWeight: 600, margin: 0 }}>プロンプト本文</label>
+            <button
+              type="button"
+              className="btn-action btn-text"
+              style={{ fontSize: '12px', padding: '2px 8px' }}
+              onClick={() => setShowAllSections(!showAllSections)}
+            >
+              {showAllSections ? "シンプル入力に切替" : "セクション分割入力"}
+            </button>
           </div>
+
+          {!showAllSections ? (
+            <div className="form-group">
+              <textarea
+                className="form-control"
+                value={sections.instructions || ""}
+                onChange={(e) => setSec("instructions", e.target.value)}
+                placeholder={"プロンプト本文を入力してください\n{変数名} で変数を埋め込めます\n\n例:\n以下の{文章}を{出力形式}で要約してください。"}
+                rows={8}
+                style={{ minHeight: '160px', resize: 'vertical' }}
+              />
+            </div>
+          ) : (
+            PROMPT_SECTIONS.map(s => (
+              <div className="form-group" key={s.key}>
+                <label style={{ fontSize: '13px' }}>{s.label}</label>
+                <textarea
+                  className="form-control"
+                  value={sections[s.key] || ""}
+                  onChange={(e) => setSec(s.key, e.target.value)}
+                  placeholder={s.placeholder}
+                  rows={s.rows}
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+            ))
+          )}
+
+          {detectedVars.length > 0 && (
+            <div style={{ fontSize: '12px', color: 'var(--ink3)', padding: '4px 0 8px', display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <span>検出された変数:</span>
+              {detectedVars.map(v => (
+                <span key={v} style={{ background: 'var(--primary-glow)', color: 'var(--primary)', padding: '1px 6px', borderRadius: '4px', fontSize: '11px' }}>{v}</span>
+              ))}
+            </div>
+          )}
+
           <div className="form-group">
             <label>URL（任意）</label>
             <input className="form-control" value={form.url || ""} onChange={(e) => set("url", e.target.value)} placeholder="https://..." />
           </div>
+
           <div className="modal-actions">
             {isEdit && <button className="btn-action btn-text" onClick={() => onDelete(item.id)}><Icons.Trash /> 削除</button>}
             <div style={{ flex: 1 }} />
             <button className="btn-action btn-outline" onClick={onClose}>キャンセル</button>
-            <button className="btn-action btn-primary" onClick={() => form.title && onSave(form)} disabled={!form.title}>{isEdit ? "保存" : "追加"}</button>
+            <button className="btn-action btn-primary" onClick={handleSubmit} disabled={!form.title}>{isEdit ? "保存" : "追加"}</button>
           </div>
         </div>
       </div>
@@ -726,7 +859,17 @@ export default function App() {
   const [runModal, setRunModal] = useState(null);
   const [helpModal, setHelpModal] = useState(false);
   const [page, setPage] = useState(0);
-  const [nextId, setNextId] = useState(3000);
+  const [nextId, setNextId] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY + "_data");
+      if (saved) {
+        const arr = JSON.parse(saved);
+        const maxId = arr.reduce((m, p) => Math.max(m, p.id || 0), 0);
+        return Math.max(3000, maxId + 1);
+      }
+    } catch {}
+    return 3000;
+  });
   const [selectedAiTool, setSelectedAiTool] = useState(() => {
     try {
       return localStorage.getItem(STORAGE_KEY + "_ai_tool") || AI_TOOLS[0].id;
@@ -910,11 +1053,91 @@ export default function App() {
 
   const toggleFav = (id) => { setFavs(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; }); };
   const handleSave = (form) => {
-    if (form.id) { setPrompts(prev => prev.map(p => p.id === form.id ? {...p, ...form} : p)); } 
-    else { const newP = { ...form, id: nextId, isUser: true }; setPrompts(prev => [newP, ...prev]); setNextId(n => n + 1); }
+    if (form.id) {
+      setPrompts(prev => prev.map(p => p.id === form.id ? {...p, ...form} : p));
+    } else {
+      const newP = {
+        ...form,
+        id: nextId,
+        isUser: true,
+        createdAt: new Date().toISOString().slice(0, 10),
+      };
+      setPrompts(prev => [newP, ...prev]);
+      setNextId(n => n + 1);
+    }
     setModal(null);
   };
   const handleDelete = (id) => { if(window.confirm("削除しますか？")) { setPrompts(prev => prev.filter(p => p.id !== id)); setModal(null); } };
+
+  const handleExport = () => {
+    const userPrompts = prompts.filter(p => p.isUser);
+    const data = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      app: "nanyo-prompt-app",
+      prompts: userPrompts,
+      favorites: [...favs],
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nanyo-prompts-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.version || !Array.isArray(data.prompts)) {
+          alert("無効なファイル形式です。nanyo-prompt-appのエクスポートファイルを選択してください。");
+          return;
+        }
+        const count = data.prompts.length;
+        const favCount = data.favorites?.length || 0;
+        if (!window.confirm(`${count}件のカスタムプロンプト${favCount ? `と${favCount}件のお気に入り` : ""}をインポートしますか？\n既存のデータとマージされます。`)) return;
+
+        // マージ: 既存のユーザープロンプトIDセット
+        const existingIds = new Set(prompts.map(p => p.id));
+        let maxId = prompts.reduce((m, p) => Math.max(m, p.id || 0), 0);
+        const newPrompts = [];
+        for (const p of data.prompts) {
+          if (existingIds.has(p.id) && prompts.find(ep => ep.id === p.id)?.isUser) {
+            // 既存ユーザープロンプトを上書き
+            setPrompts(prev => prev.map(ep => ep.id === p.id ? { ...ep, ...p } : ep));
+          } else if (existingIds.has(p.id)) {
+            // 公式プロンプトとID衝突 → 新しいIDを付与
+            maxId++;
+            newPrompts.push({ ...p, id: maxId, isUser: true });
+          } else {
+            newPrompts.push({ ...p, isUser: true });
+          }
+        }
+        if (newPrompts.length > 0) {
+          setPrompts(prev => [...newPrompts, ...prev]);
+        }
+        // お気に入りマージ
+        if (Array.isArray(data.favorites)) {
+          setFavs(prev => {
+            const n = new Set(prev);
+            data.favorites.forEach(id => n.add(id));
+            return n;
+          });
+        }
+        setNextId(Math.max(nextId, maxId + 1));
+        alert(`インポートが完了しました。`);
+      } catch (err) {
+        alert("ファイルの読み込みに失敗しました: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
 
   const handleResetData = () => {
     const ok = window.confirm(
@@ -1096,7 +1319,7 @@ export default function App() {
           setSelectedAiTool={setSelectedAiTool}
         />
       )}
-      {helpModal && <HelpModal onClose={() => setHelpModal(false)} onStartTour={() => { setHelpModal(false); setIntroStep(0); }} onResetData={handleResetData} />}
+      {helpModal && <HelpModal onClose={() => setHelpModal(false)} onStartTour={() => { setHelpModal(false); setIntroStep(0); }} onResetData={handleResetData} onExport={handleExport} onImport={handleImport} />}
     </div>
   );
 }
