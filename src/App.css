@@ -939,7 +939,7 @@ select.form-control:focus {
   padding: 24px;
 }
 .crud-modal {
-  max-width: 600px;
+  max-width: 720px;
   width: calc(100vw - 32px);
 }
 .crud-modal textarea.form-control {
