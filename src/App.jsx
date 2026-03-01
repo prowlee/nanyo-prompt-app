@@ -166,7 +166,7 @@ const HelpModal = ({ onClose, onStartTour, onResetData, onExport, onImport }) =>
               <li><strong>フィルタ</strong> — カテゴリボタンで絞り込み。「新着」で最近追加されたプロンプトを確認できます。</li>
               <li><strong>プロンプト実行</strong> — カードをクリックするとプロンプトの詳細を表示。「コピーしてAIで使う」でプロンプトをコピーし、選択したAIツール（ChatGPT / Gemini / Claude）を開きます。</li>
               <li><strong>お気に入り</strong> — ハートアイコンでお気に入りに登録。「お気に入り」フィルタで一覧表示できます。</li>
-              <li><strong>カスタムプロンプト</strong> — 「追加」ボタンで自分だけのプロンプトを作成・管理できます。</li>
+              <li><strong>カスタムプロンプト</strong> — 「追加」ボタンで自分だけのプロンプトを作成・管理できます。作成したデータはサーバーには送信されず、このブラウザ内にのみ保存されます。</li>
             </ul>
           </section>
 
@@ -252,12 +252,19 @@ const HelpModal = ({ onClose, onStartTour, onResetData, onExport, onImport }) =>
           </section>
 
           <section className="help-section">
-            <h3>データの管理</h3>
-            <p>カスタムプロンプトとお気に入りをJSONファイルとしてバックアップ・復元できます。</p>
+            <h3>データの保存について</h3>
+            <p>このアプリで作成・変更したデータ（カスタムプロンプト・お気に入り・テーマ設定など）は、<strong>すべてお使いのブラウザの中だけに保存</strong>されます。インターネット上のサーバーには一切送信されません。</p>
+            <ul>
+              <li>別のブラウザやスマートフォンからは参照できません。</li>
+              <li>ブラウザのキャッシュや履歴を「すべて削除」すると、データが消える場合があります。</li>
+              <li>大切なプロンプトは、下記の「エクスポート」でファイルに保存しておくことをおすすめします。</li>
+            </ul>
+            <h4>バックアップと復元</h4>
+            <p>カスタムプロンプトとお気に入りをファイルに書き出したり、以前のファイルから読み込んだりできます。機種変更やブラウザ変更の前にエクスポートしておくと安心です。</p>
             <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-              <button className="help-tour-btn" onClick={onExport}>エクスポート</button>
+              <button className="help-tour-btn" onClick={onExport}>エクスポート（書き出し）</button>
               <label className="help-tour-btn" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
-                インポート
+                インポート（読み込み）
                 <input type="file" accept=".json" style={{ display: 'none' }} onChange={onImport} />
               </label>
             </div>
