@@ -1424,3 +1424,54 @@ body.dark .help-shortcuts kbd {
   }
 }
 
+/* ─── ImportOptionsModal ─────────────────────────────────────────────────── */
+.import-options-modal {
+  width: min(480px, 92vw);
+  border-radius: 16px;
+}
+
+.import-mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.import-mode-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.import-mode-item:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.import-mode-item.selected {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.import-mode-item input[type="radio"] {
+  margin-top: 3px;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+.import-mode-item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.import-mode-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink1);
+}
+.import-mode-desc {
+  font-size: 12px;
+  color: var(--ink3);
+  line-height: 1.5;
+}
+

@@ -53,6 +53,7 @@ const Icons = {
   Restore: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
   GripResize: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="22" y1="2" x2="2" y2="22"/><line x1="22" y1="10" x2="10" y2="22"/><line x1="22" y1="18" x2="18" y2="22"/></svg>,
   Help: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  User: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
 };
 
 // Category icon mapping
@@ -259,8 +260,9 @@ const HelpModal = ({ onClose, onStartTour, onResetData, onExport, onImport }) =>
               <li>ブラウザの「サイトのデータを削除」や「Cookieをすべて削除」を行うと、データが消える場合があります。</li>
               <li>大切なプロンプトは、下記の「エクスポート」でファイルに保存しておくことをおすすめします。</li>
             </ul>
-            <h4>バックアップと復元</h4>
-            <p>カスタムプロンプトとお気に入りをファイルに書き出したり、以前のファイルから読み込んだりできます。機種変更やブラウザ変更の前にエクスポートしておくと安心です。</p>
+            <h4>バックアップ・復元・共有</h4>
+            <p>カスタムプロンプトとお気に入りをJSONファイルに書き出したり、ファイルから読み込んだりできます。機種変更やブラウザ変更の前にエクスポートしておくと安心です。他の人が作ったプロンプトをインポートして共有することもできます。</p>
+            <p style={{ fontSize: '13px', color: 'var(--ink3)', marginTop: '6px' }}>インポート時は「追加」「マージ」「全て置き換え」の3つの方式から選べます。</p>
             <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
               <button className="help-tour-btn" onClick={onExport}>エクスポート（書き出し）</button>
               <label className="help-tour-btn" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
@@ -275,6 +277,76 @@ const HelpModal = ({ onClose, onStartTour, onResetData, onExport, onImport }) =>
             <p>お気に入り、カスタムプロンプト、テーマ設定、オンボーディング履歴など、すべてのローカルデータを削除して初期状態に戻します。</p>
             <button className="help-reset-btn" onClick={onResetData}>すべてのデータを初期化</button>
           </section>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+// ─── Modal: ImportOptionsModal ───────────────────────────────────────────────
+const IMPORT_MODES = [
+  {
+    value: "add",
+    label: "追加",
+    desc: "既存のプロンプトはそのままで、インポートしたプロンプトをすべて新規追加します。",
+  },
+  {
+    value: "merge",
+    label: "マージ",
+    desc: "同じIDの独自プロンプトは上書き、新しいものは追加します。",
+  },
+  {
+    value: "replace",
+    label: "全て置き換え",
+    desc: "既存の独自プロンプトをすべて削除し、インポートしたプロンプトに置き換えます。",
+  },
+];
+
+const ImportOptionsModal = ({ data, onConfirm, onClose }) => {
+  const [mode, setMode] = useState("add");
+
+  useEffect(() => {
+    const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
+  return createPortal(
+    <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal import-options-modal">
+        <div className="modal-header">
+          <h2 style={{ fontSize: '18px', fontWeight: 700 }}>インポート方式を選択</h2>
+          <button className="close-btn" onClick={onClose} aria-label="閉じる">×</button>
+        </div>
+        <div className="modal-body" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <p style={{ fontSize: '14px', color: 'var(--ink2)', margin: 0 }}>
+            <strong>{data.prompts.length}件</strong>のカスタムプロンプト
+            {data.favorites?.length ? <span>・お気に入り<strong>{data.favorites.length}件</strong></span> : null}
+            が含まれています。
+          </p>
+          <div className="import-mode-list">
+            {IMPORT_MODES.map(m => (
+              <label key={m.value} className={`import-mode-item${mode === m.value ? ' selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="import-mode"
+                  value={m.value}
+                  checked={mode === m.value}
+                  onChange={() => setMode(m.value)}
+                />
+                <div>
+                  <span className="import-mode-label">{m.label}</span>
+                  <span className="import-mode-desc">{m.desc}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="modal-actions" style={{ padding: '16px 24px', borderTop: '1px solid var(--border)' }}>
+          <button className="btn-action btn-outline" onClick={onClose}>キャンセル</button>
+          <div style={{ flex: 1 }} />
+          <button className="btn-action btn-primary" onClick={() => onConfirm(mode)}>インポート実行</button>
         </div>
       </div>
     </div>,
@@ -483,24 +555,6 @@ const PromptRunModal = ({ item, onClose, selectedAiTool, setSelectedAiTool }) =>
       vv.removeEventListener('resize', handleResize);
       vv.removeEventListener('scroll', handleResize);
       document.documentElement.style.removeProperty('--keyboard-offset');
-    };
-  }, []);
-
-  // ─── Prevent body scroll when modal is open ───
-  useEffect(() => {
-    const scrollY = window.scrollY;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.left = '0';
-    document.body.style.right = '0';
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.overflow = '';
-      window.scrollTo(0, scrollY);
     };
   }, []);
 
@@ -969,6 +1023,7 @@ export default function App() {
   const [activeC1, setActiveC1] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [showFav, setShowFav] = useState(false);
+  const [showUser, setShowUser] = useState(false);
   const [favs, setFavs] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY + "_favs");
@@ -985,6 +1040,7 @@ export default function App() {
   const [modal, setModal] = useState(null);
   const [runModal, setRunModal] = useState(null);
   const [helpModal, setHelpModal] = useState(false);
+  const [importOptions, setImportOptions] = useState(null);
   const [page, setPage] = useState(0);
   const [nextId, setNextId] = useState(() => {
     try {
@@ -1033,6 +1089,26 @@ export default function App() {
       localStorage.setItem(STORAGE_KEY + "_use_query", String(useQuery));
     }
   }, [prompts, favs, isLoaded, selectedAiTool, useQuery]);
+
+  // モーダル開閉に連動したスクロールロック
+  useEffect(() => {
+    const isOpen = !!(modal || runModal || helpModal || importOptions);
+    if (!isOpen) return;
+    const scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflow = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, [modal, runModal, helpModal, importOptions]);
 
   // intro: 初回チェック（DOM描画後）
   useEffect(() => {
@@ -1151,6 +1227,8 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [query]);
 
+  const userCount = useMemo(() => prompts.filter(p => p.isUser).length, [prompts]);
+
   const filtered = useMemo(() => {
     let list = prompts;
     if (debouncedQuery) {
@@ -1159,8 +1237,9 @@ export default function App() {
     if (activeC1) list = list.filter(p => p.c1 === activeC1);
     if (showNew) list = list.filter(p => p.isNew);
     if (showFav) list = list.filter(p => favs.has(p.id));
+    if (showUser) list = list.filter(p => p.isUser);
     return list;
-  }, [prompts, debouncedQuery, searchMode, activeC1, showNew, showFav, favs]);
+  }, [prompts, debouncedQuery, searchMode, activeC1, showNew, showFav, showUser, favs]);
 
   // 検索結果のマッチタイプ集計
   const matchTypeSummary = useMemo(() => {
@@ -1214,6 +1293,17 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
+  const sanitizePrompt = (p) => ({
+    id: typeof p.id === 'number' ? p.id : null,
+    title: typeof p.title === 'string' ? p.title.slice(0, 500) : "",
+    body: typeof p.body === 'string' ? p.body.slice(0, 50000) : "",
+    c1: typeof p.c1 === 'string' ? p.c1.slice(0, 100) : "",
+    c2: typeof p.c2 === 'string' ? p.c2.slice(0, 100) : "",
+    url: typeof p.url === 'string' && /^https?:\/\//i.test(p.url) ? p.url : "",
+    isUser: true,
+    createdAt: typeof p.createdAt === 'string' ? p.createdAt : "",
+  });
+
   const handleImport = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1225,62 +1315,76 @@ export default function App() {
           alert("無効なファイル形式です。nanyo-prompt-appのエクスポートファイルを選択してください。");
           return;
         }
-        const count = data.prompts.length;
-        const favCount = data.favorites?.length || 0;
-        if (!window.confirm(`${count}件のカスタムプロンプト${favCount ? `と${favCount}件のお気に入り` : ""}をインポートしますか？\n既存のデータとマージされます。`)) return;
-
-        // フィールドバリデーション & サニタイズ
-        const sanitize = (p) => ({
-          id: typeof p.id === 'number' ? p.id : null,
-          title: typeof p.title === 'string' ? p.title.slice(0, 500) : "",
-          body: typeof p.body === 'string' ? p.body.slice(0, 50000) : "",
-          c1: typeof p.c1 === 'string' ? p.c1.slice(0, 100) : "",
-          c2: typeof p.c2 === 'string' ? p.c2.slice(0, 100) : "",
-          url: typeof p.url === 'string' && /^https?:\/\//i.test(p.url) ? p.url : "",
-          isUser: true,
-          createdAt: typeof p.createdAt === 'string' ? p.createdAt : "",
-        });
-
-        // マージ: 既存のユーザープロンプトIDセット
-        const existingIds = new Set(prompts.map(p => p.id));
-        let maxId = prompts.reduce((m, p) => Math.max(m, p.id || 0), 0);
-        const updatesMap = new Map();
-        const newPrompts = [];
-        for (const raw of data.prompts) {
-          const p = sanitize(raw);
-          if (!p.title) continue; // titleなしはスキップ
-          if (p.id !== null && existingIds.has(p.id) && prompts.find(ep => ep.id === p.id)?.isUser) {
-            // 既存ユーザープロンプトを上書き
-            updatesMap.set(p.id, p);
-          } else if (p.id !== null && existingIds.has(p.id)) {
-            // 公式プロンプトとID衝突 → 新しいIDを付与
-            maxId++;
-            newPrompts.push({ ...p, id: maxId });
-          } else {
-            newPrompts.push(p);
-          }
-        }
-        // 単一のsetPromptsで一括更新
-        setPrompts(prev => {
-          const updated = prev.map(ep => updatesMap.has(ep.id) ? { ...ep, ...updatesMap.get(ep.id) } : ep);
-          return newPrompts.length > 0 ? [...newPrompts, ...updated] : updated;
-        });
-        // お気に入りマージ
-        if (Array.isArray(data.favorites)) {
-          setFavs(prev => {
-            const n = new Set(prev);
-            data.favorites.forEach(id => typeof id === 'number' && n.add(id));
-            return n;
-          });
-        }
-        setNextId(prev => Math.max(prev, maxId + 1));
-        alert(`インポートが完了しました。`);
+        setImportOptions(data);
       } catch (err) {
         alert("ファイルの読み込みに失敗しました: " + err.message);
       }
     };
     reader.readAsText(file);
     e.target.value = "";
+  };
+
+  const executeImport = (mode) => {
+    if (!importOptions) return;
+    const data = importOptions;
+    setImportOptions(null);
+
+    const rawList = data.prompts.filter(p => {
+      const s = sanitizePrompt(p);
+      return !!s.title;
+    }).map(sanitizePrompt);
+
+    if (mode === "replace") {
+      // 既存の独自プロンプトを削除し、インポート分で置き換え
+      let maxId = prompts.filter(p => !p.isUser).reduce((m, p) => Math.max(m, p.id || 0), 0);
+      const withIds = rawList.map(p => {
+        maxId++;
+        return { ...p, id: maxId };
+      });
+      setPrompts(prev => [...withIds, ...prev.filter(p => !p.isUser)]);
+      setNextId(prev => Math.max(prev, maxId + 1));
+    } else if (mode === "add") {
+      // 全件を新規IDで追加
+      let maxId = prompts.reduce((m, p) => Math.max(m, p.id || 0), 0);
+      const withIds = rawList.map(p => {
+        maxId++;
+        return { ...p, id: maxId };
+      });
+      setPrompts(prev => [...withIds, ...prev]);
+      setNextId(prev => Math.max(prev, maxId + 1));
+    } else {
+      // merge: 同IDのユーザープロンプトは上書き、新規は追加
+      const existingIds = new Set(prompts.map(p => p.id));
+      let maxId = prompts.reduce((m, p) => Math.max(m, p.id || 0), 0);
+      const updatesMap = new Map();
+      const newPrompts = [];
+      for (const p of rawList) {
+        if (p.id !== null && existingIds.has(p.id) && prompts.find(ep => ep.id === p.id)?.isUser) {
+          updatesMap.set(p.id, p);
+        } else if (p.id !== null && existingIds.has(p.id)) {
+          maxId++;
+          newPrompts.push({ ...p, id: maxId });
+        } else {
+          newPrompts.push(p);
+        }
+      }
+      setPrompts(prev => {
+        const updated = prev.map(ep => updatesMap.has(ep.id) ? { ...ep, ...updatesMap.get(ep.id) } : ep);
+        return newPrompts.length > 0 ? [...newPrompts, ...updated] : updated;
+      });
+      setNextId(prev => Math.max(prev, maxId + 1));
+    }
+
+    // お気に入りマージ（全モード共通）
+    if (Array.isArray(data.favorites)) {
+      setFavs(prev => {
+        const n = new Set(prev);
+        data.favorites.forEach(id => typeof id === 'number' && n.add(id));
+        return n;
+      });
+    }
+
+    alert("インポートが完了しました。");
   };
 
   const handleResetData = () => {
@@ -1360,16 +1464,19 @@ export default function App() {
         )}
       </div>
       <div className="filters">
-        <button className={`chip ${!activeC1 && !showNew && !showFav ? 'active' : ''}`} onClick={()=>{setActiveC1("");setShowNew(false);setShowFav(false);setPage(0)}}>
+        <button className={`chip ${!activeC1 && !showNew && !showFav && !showUser ? 'active' : ''}`} onClick={()=>{setActiveC1("");setShowNew(false);setShowFav(false);setShowUser(false);setPage(0)}}>
           すべて <span className="chip-count">{prompts.length}</span>
         </button>
         {RAW.c1.map(c => (
-          <button key={c} className={`chip ${activeC1 === c ? 'active' : ''}`} onClick={()=>{setActiveC1(activeC1===c?"":c);setShowNew(false);setShowFav(false);setPage(0)}}>
+          <button key={c} className={`chip ${activeC1 === c ? 'active' : ''}`} onClick={()=>{setActiveC1(activeC1===c?"":c);setShowNew(false);setShowFav(false);setShowUser(false);setPage(0)}}>
             <CatIcon cat={c} /> {c}
           </button>
         ))}
-        <button className={`chip chip-new ${showNew ? 'active' : ''}`} onClick={()=>{setShowNew(!showNew);setActiveC1("");setShowFav(false);setPage(0)}}><Icons.Zap /> 新着</button>
-        <button className={`chip ${showFav ? 'active' : ''}`} onClick={()=>{setShowFav(!showFav);setActiveC1("");setShowNew(false);setPage(0)}} style={showFav?{background:'#fee2e2',color:'#ef4444',borderColor:'#ef4444'}:{}}><Icons.Heart /> お気に入り</button>
+        <button className={`chip chip-new ${showNew ? 'active' : ''}`} onClick={()=>{setShowNew(!showNew);setActiveC1("");setShowFav(false);setShowUser(false);setPage(0)}}><Icons.Zap /> 新着</button>
+        <button className={`chip ${showFav ? 'active' : ''}`} onClick={()=>{setShowFav(!showFav);setActiveC1("");setShowNew(false);setShowUser(false);setPage(0)}} style={showFav?{background:'#fee2e2',color:'#ef4444',borderColor:'#ef4444'}:{}}><Icons.Heart /> お気に入り</button>
+        {userCount > 0 && (
+          <button className={`chip chip-user ${showUser ? 'active' : ''}`} onClick={()=>{setShowUser(!showUser);setActiveC1("");setShowNew(false);setShowFav(false);setPage(0)}}><Icons.User /> マイプロンプト <span className="chip-count">{userCount}</span></button>
+        )}
       </div>
       <div className={`grid ${viewMode === 'list' ? 'list' : ''}`}>
         {paged.length === 0 ? (
@@ -1464,6 +1571,7 @@ export default function App() {
         />
       )}
       {helpModal && <HelpModal onClose={() => setHelpModal(false)} onStartTour={() => { setHelpModal(false); setIntroStep(0); }} onResetData={handleResetData} onExport={handleExport} onImport={handleImport} />}
+      {importOptions && <ImportOptionsModal data={importOptions} onConfirm={executeImport} onClose={() => setImportOptions(null)} />}
     </div>
   );
 }
