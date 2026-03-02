@@ -898,6 +898,8 @@ const CrudModal = ({ item, onSave, onDelete, onClose }) => {
     const parsed = parseBody(form.body || "");
     return Object.keys(parsed).length > 1;
   });
+  const [isMaximized, setIsMaximized] = useState(false);
+  const modalRef = useRef(null);
 
   const isEdit = !!item;
 
@@ -909,9 +911,14 @@ const CrudModal = ({ item, onSave, onDelete, onClose }) => {
   };
 
   useEffect(() => {
-    const handleEsc = (e) => { if (e.key === 'Escape') handleClose(); };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    const handleKey = (e) => {
+      if (e.key === 'Escape') { handleClose(); return; }
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
+      if (e.key === 'f' || e.key === 'F') { e.preventDefault(); setIsMaximized(v => !v); }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
   }, [isDirty]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -930,14 +937,19 @@ const CrudModal = ({ item, onSave, onDelete, onClose }) => {
   const detectedVars = [...new Set((bodyPreview.match(/\{([^}]+)\}/g) || []))];
 
   return createPortal(
-    <div className="modal-backdrop" onClick={handleClose}>
-      <div className="modal crud-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
-          <div>
-            <h2>{isEdit ? "プロンプトを編集" : "新規プロンプトを追加"}</h2>
-            <p>{isEdit ? `#${item.id} の内容を変更します` : "作成したプロンプトはこのブラウザに保存されます"}</p>
+    <div className="modal-backdrop run-modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) handleClose(); }}>
+      <div ref={modalRef} className={`modal run-modal crud-modal ${isMaximized ? 'run-modal-maximized' : ''}`}>
+        <div className="run-modal-header">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 className="run-modal-title">{isEdit ? "プロンプトを編集" : "新規プロンプトを追加"}</h2>
+            <p className="run-modal-meta">{isEdit ? `#${item.id} の内容を変更します` : "作成したプロンプトはこのブラウザに保存されます"}</p>
           </div>
-          <button className="close-btn" onClick={handleClose} aria-label="閉じる">×</button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+            <button onClick={() => setIsMaximized(v => !v)} className="run-modal-icon-btn hide-mobile" title={isMaximized ? "元のサイズに戻す" : "全画面表示"}>
+              {isMaximized ? <Icons.Restore /> : <Icons.Maximize />}
+            </button>
+            <button onClick={handleClose} className="run-modal-icon-btn" style={{ fontSize: '20px', color: 'var(--ink2)' }}>×</button>
+          </div>
         </div>
         <div className="modal-body" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {!isEdit && (
@@ -1043,10 +1055,11 @@ const CrudModal = ({ item, onSave, onDelete, onClose }) => {
           <div className="modal-actions">
             {isEdit && <button className="btn-action btn-text" onClick={() => onDelete(item.id)}><Icons.Trash /> 削除</button>}
             <div style={{ flex: 1 }} />
-            <button className="btn-action btn-outline" onClick={onClose}>キャンセル</button>
+            <button className="btn-action btn-outline" onClick={handleClose}>キャンセル</button>
             <button className="btn-action btn-primary" onClick={handleSubmit} disabled={!form.title}>{isEdit ? "保存" : "追加"}</button>
           </div>
         </div>
+        {!isMaximized && <span className="resize-grip hide-mobile"><Icons.GripResize /></span>}
       </div>
     </div>,
     document.body
