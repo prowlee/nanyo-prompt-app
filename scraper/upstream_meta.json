@@ -426,7 +426,7 @@
   },
   "086": {
     "file": "086.html",
-    "sha": "c99a08eea6316b6eb46574ec9be5e2348abe2253",
+    "sha": "28795fe2eba451a2abdcc8bb8e4ac0562588ac99",
     "name": "086"
   },
   "087": {
@@ -1846,7 +1846,7 @@
   },
   "370": {
     "file": "370.html",
-    "sha": "395861307dc070098993fe867b9db91525d650b6",
+    "sha": "8c4d1fa6bfefa81c5e188e871de9a0efeab55e6f",
     "name": "370"
   },
   "371": {
@@ -3808,5 +3808,15 @@
     "file": "772.html",
     "sha": "039f168a2a2474c08bd04b16b3f2583702799bac",
     "name": "772"
+  },
+  "773": {
+    "file": "773.html",
+    "sha": "ccca4ca690bce8c17fa59af20cf7598ac9b60304",
+    "name": "773"
+  },
+  "774": {
+    "file": "774.html",
+    "sha": "dbc081a1ab5ee6e8d43d472b7232171126d64371",
+    "name": "774"
   }
 }
