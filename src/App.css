@@ -229,6 +229,95 @@ body.dark .header { background: rgba(15, 23, 42, 0.88); }
   color: var(--primary);
 }
 
+/* ─── Announcements ──────────────────────────────────────────────────────── */
+.announcements { padding: 12px 24px 0; }
+.announcement-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--primary-light), rgba(99, 102, 241, 0.08));
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  animation: announcement-slide-in 0.35s ease-out;
+}
+.announcement-banner + .announcement-banner { margin-top: 8px; }
+@keyframes announcement-slide-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.announcement-content {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.announcement-icon {
+  display: inline-flex;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.announcement-label {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 99px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.announcement-date {
+  font-size: 12px;
+  color: var(--ink3);
+  flex-shrink: 0;
+}
+.announcement-title {
+  font-weight: 600;
+  color: var(--ink);
+}
+.announcement-body {
+  width: 100%;
+  font-size: 13px;
+  color: var(--ink2);
+}
+.announcement-dismiss {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.announcement-dismiss:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--ink);
+}
+body.dark .announcement-banner {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(99, 102, 241, 0.05));
+  border-color: rgba(99, 102, 241, 0.25);
+}
+body.dark .announcement-dismiss:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+@media (max-width: 600px) {
+  .announcements { padding: 8px 12px 0; }
+  .announcement-banner { padding: 12px 14px; }
+  .announcement-content { font-size: 13px; }
+  .announcement-body { font-size: 12px; }
+}
+
 /* ─── Search ─────────────────────────────────────────────────────────────── */
 .search-container { padding: 20px 24px 8px; }
 .search-box { position: relative; max-width: 560px; margin: 0 auto; }

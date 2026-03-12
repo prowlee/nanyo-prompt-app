@@ -13,6 +13,18 @@ const MOD_LABEL = isMac ? '⌘' : 'Ctrl';
 
 const STORAGE_KEY = "nanyo_prompts_v5";
 const PER_PAGE = 32;
+
+// ─── Announcements ──────────────────────────────────────────────────────────
+const ANNOUNCEMENTS = [
+  {
+    id: "2026-03-12-launch",
+    date: "2026-03-12",
+    label: "リニューアル",
+    title: "アプリをリニューアルしました",
+    body: "検索機能の強化、AIツール連携、ダークモード対応など、多数の改善を行いました。",
+  },
+];
+const ANNOUNCEMENTS_DISMISSED_KEY = STORAGE_KEY + "_announcements_dismissed";
 const MAX_QUERY_LENGTH = 2000; // URLクエリの安全な上限文字数
 
 const AI_TOOLS = [
@@ -58,6 +70,8 @@ const Icons = {
   Database: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>,
   Upload: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
   Download: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+  Megaphone: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 11 18-5v12L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>,
+  Close: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
 };
 
 // Category icon mapping
@@ -1138,6 +1152,20 @@ export default function App() {
   const [exportPreview, setExportPreview] = useState(null);
   const [dataMenu, setDataMenu] = useState(false);
   const dataMenuRef = useRef(null);
+  const [dismissedAnnouncements, setDismissedAnnouncements] = useState(() => {
+    try {
+      const saved = localStorage.getItem(ANNOUNCEMENTS_DISMISSED_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const activeAnnouncements = ANNOUNCEMENTS.filter(a => !dismissedAnnouncements.includes(a.id));
+  const dismissAnnouncement = (id) => {
+    setDismissedAnnouncements(prev => {
+      const next = [...prev, id];
+      try { localStorage.setItem(ANNOUNCEMENTS_DISMISSED_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
   const [page, setPage] = useState(0);
   const [nextId, setNextId] = useState(() => {
     try {
@@ -1559,6 +1587,22 @@ export default function App() {
           </div>
         </div>
       </header>
+      {activeAnnouncements.length > 0 && (
+        <div className="announcements">
+          {activeAnnouncements.map(a => (
+            <div key={a.id} className="announcement-banner">
+              <div className="announcement-content">
+                <span className="announcement-icon"><Icons.Megaphone /></span>
+                <span className="announcement-label">{a.label}</span>
+                <span className="announcement-date">{a.date}</span>
+                <span className="announcement-title">{a.title}</span>
+                {a.body && <span className="announcement-body">{a.body}</span>}
+              </div>
+              <button className="announcement-dismiss" onClick={() => dismissAnnouncement(a.id)} aria-label="閉じる"><Icons.Close /></button>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="search-container">
         <div className="search-box">
           <span className="search-icon"><Icons.Search /></span>
